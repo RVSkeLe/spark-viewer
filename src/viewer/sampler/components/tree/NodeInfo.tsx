@@ -91,7 +91,7 @@ export default function NodeInfo({
                 {children}
                 <span className="percent" style={{ filter, opacity }}>
                     {labelMode
-                        ? `${Number.isFinite(timePerInterval) ? formatValue(timePerInterval!) : "N/A"}`
+                        ? `${Number.isFinite(timePerInterval) ? formatValue(timePerInterval) : "N/A"}`
                         : humanFriendlyPercentage(time / threadTime)}
                 </span>
                 {infoPoint}

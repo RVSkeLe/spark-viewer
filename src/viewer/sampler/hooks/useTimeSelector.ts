@@ -90,7 +90,8 @@ export default function useTimeSelector(
             let millis = 0;
             for (const windowId of timeWindows) {
                 if (isTimeSelected(windowId)) {
-                    millis += timeWindowStatistics[windowId].duration;
+                    const stats = timeWindowStatistics[windowId];
+                    millis += Math.max(0, stats.endTime - stats.startTime);
                 }
             }
             return millis;

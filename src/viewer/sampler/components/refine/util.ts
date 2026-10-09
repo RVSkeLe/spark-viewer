@@ -15,12 +15,7 @@ export const IGNORED_KEYS = [
 
 export type WindowStatisticsKey = KeyNotOfType<
     WindowStatistics,
-    | 'ticks'
-    | 'includedTicks'
-    | 'startTime'
-    | 'endTime'
-    | 'duration'
-    | 'msptMax'
+    'ticks' | 'includedTicks' | 'startTime' | 'endTime' | 'duration' | 'msptMax'
 >;
 
 export interface ChartData {
