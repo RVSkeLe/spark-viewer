@@ -53,7 +53,7 @@ export default function NodeInfo({
     const labelMode = useContext(LabelModeContext)!;
     const timeSelector = useContext(TimeSelectorContext)!;
 
-    let timePerInterval: number;
+    let timePerInterval: number = Number.NaN;
     if (labelMode) {
         // labelMode is on
         // execution  ==> time per tick
