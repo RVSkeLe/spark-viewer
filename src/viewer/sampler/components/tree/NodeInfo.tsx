@@ -4,7 +4,7 @@ import {
     formatTime,
     humanFriendlyPercentage,
 } from '../../../common/util/format';
-import { SamplerMetadata_SamplerMode } from '../../../proto/spark_pb';
+import { SamplerMetadata_SamplerMode, SamplerMetadata_DataAggregator_Type } from '../../../proto/spark_pb';
 import {
     LabelModeContext,
     MetadataContext,
@@ -65,18 +65,15 @@ export default function NodeInfo({
             const numberOfSeconds = numberOfMilliseconds / 1000;
             timePerInterval = time / numberOfSeconds;
         } else {
-            // For tick-filtered profiles, timeline points represent the
-            // included sampling windows. Use the selected point count rather
-            // than the total (unfiltered) server tick count.
-            const includedTicks = metadata.dataAggregator?.numberOfIncludedTicks;
-            const numberOfTicks = includedTicks
-                ? timeSelector.supported && !timeSelector.allTimesSelected
-                    ? timeSelector.times.filter(timeSelector.isTimeSelected).length
-                    : includedTicks
-                : timeSelector.supported
-                  ? timeSelector.getTicksInRange()
-                  : metadata.numberOfTicks;
-            timePerInterval = time / Math.max(numberOfTicks, 1);
+            const ticked = metadata.dataAggregator?.type === SamplerMetadata_DataAggregator_Type.TICKED;
+            const included = metadata.dataAggregator?.numberOfIncludedTicks ?? 0;
+            const perWindowAvailable = timeSelector.hasIncludedTickCounts();
+            const numberOfTicks = ticked
+                ? (timeSelector.allTimesSelected
+                    ? included
+                    : perWindowAvailable ? timeSelector.getIncludedTicksInRange() : 0)
+                : (timeSelector.supported ? timeSelector.getTicksInRange() : metadata.numberOfTicks);
+            timePerInterval = numberOfTicks > 0 ? time / numberOfTicks : NaN;
         }
     }
 
@@ -94,7 +91,7 @@ export default function NodeInfo({
                 {children}
                 <span className="percent" style={{ filter, opacity }}>
                     {labelMode
-                        ? `${formatValue(timePerInterval!)}`
+                        ? `${Number.isFinite(timePerInterval) ? formatValue(timePerInterval!) : "N/A"}`
                         : humanFriendlyPercentage(time / threadTime)}
                 </span>
                 {infoPoint}

@@ -10,6 +10,8 @@ export interface TimeSelector {
     allTimesSelected: boolean;
     getTime: (node: VirtualNode) => number;
     getTicksInRange: () => number;
+    getIncludedTicksInRange: () => number;
+    hasIncludedTickCounts: () => boolean;
     getMillisInRange: () => number;
 }
 
@@ -71,6 +73,18 @@ export default function useTimeSelector(
         return ticks;
     }, [isTimeSelected, timeWindowStatistics, timeWindows]);
 
+    const getIncludedTicksInRange: TimeSelector['getIncludedTicksInRange'] = useCallback(() => {
+        return timeWindows.reduce((sum, windowId) =>
+            sum + (isTimeSelected(windowId) ? (timeWindowStatistics[windowId]?.includedTicks ?? 0) : 0), 0);
+    }, [isTimeSelected, timeWindowStatistics, timeWindows]);
+
+    // Protobuf scalar fields default to zero, so older profiles are indistinguishable
+    // from new profiles with no qualifying ticks. The caller must use global metadata
+    // to determine whether per-window data is available.
+    const hasIncludedTickCounts: TimeSelector['hasIncludedTickCounts'] = useCallback(() =>
+        timeWindows.some(windowId => (timeWindowStatistics[windowId]?.includedTicks ?? 0) > 0),
+        [timeWindowStatistics, timeWindows]);
+
     const getMillisInRange: TimeSelector['getMillisInRange'] =
         useCallback(() => {
             let millis = 0;
@@ -90,6 +104,8 @@ export default function useTimeSelector(
         allTimesSelected,
         getTime,
         getTicksInRange,
+        getIncludedTicksInRange,
+        hasIncludedTickCounts,
         getMillisInRange,
     };
 }

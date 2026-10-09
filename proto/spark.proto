@@ -169,7 +169,7 @@ message WindowStatistics {
   // approximate wall-clock start/end times
   int64 startTime = 11;
   int64 endTime = 12;
-  int32 duration = 13;
+  int32 includedTicks = 14;
 }
 
 message RollingAverageValues {
