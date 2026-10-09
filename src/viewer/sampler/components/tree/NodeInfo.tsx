@@ -4,7 +4,10 @@ import {
     formatTime,
     humanFriendlyPercentage,
 } from '../../../common/util/format';
-import { SamplerMetadata_SamplerMode } from '../../../proto/spark_pb';
+import {
+    SamplerMetadata_DataAggregator_Type,
+    SamplerMetadata_SamplerMode,
+} from '../../../proto/spark_pb';
 import {
     LabelModeContext,
     MetadataContext,
@@ -53,7 +56,7 @@ export default function NodeInfo({
     const labelMode = useContext(LabelModeContext)!;
     const timeSelector = useContext(TimeSelectorContext)!;
 
-    let timePerInterval: number;
+    let timePerInterval: number | undefined;
     if (labelMode) {
         // labelMode is on
         // execution  ==> time per tick
@@ -65,11 +68,26 @@ export default function NodeInfo({
             const numberOfSeconds = numberOfMilliseconds / 1000;
             timePerInterval = time / numberOfSeconds;
         } else {
-            const numberOfTicks = timeSelector.supported
-                ? timeSelector.getTicksInRange()
-                : metadata.dataAggregator?.numberOfIncludedTicks ||
-                  metadata.numberOfTicks;
-            timePerInterval = time / Math.max(numberOfTicks, 1);
+            const aggregator = metadata.dataAggregator;
+            const isTickFiltered =
+                aggregator?.type ===
+                SamplerMetadata_DataAggregator_Type.TICKED;
+
+            // Window statistics count all server ticks, not just ticks
+            // included by the tick-duration filter. The included count is
+            // available only for the full profiling interval.
+            if (isTickFiltered && !timeSelector.allTimesSelected) {
+                timePerInterval = undefined;
+            } else {
+                const numberOfTicks = isTickFiltered
+                    ? (aggregator?.numberOfIncludedTicks ?? 0)
+                    : timeSelector.supported
+                      ? timeSelector.getTicksInRange()
+                      : metadata.numberOfTicks;
+
+                timePerInterval =
+                    numberOfTicks > 0 ? time / numberOfTicks : undefined;
+            }
         }
     }
 
@@ -87,7 +105,9 @@ export default function NodeInfo({
                 {children}
                 <span className="percent" style={{ filter, opacity }}>
                     {labelMode
-                        ? `${formatValue(timePerInterval!)}`
+                        ? timePerInterval === undefined
+                            ? 'N/A'
+                            : formatValue(timePerInterval)
                         : humanFriendlyPercentage(time / threadTime)}
                 </span>
                 {infoPoint}
